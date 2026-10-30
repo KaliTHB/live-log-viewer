@@ -1,0 +1,28 @@
+# Merge carefully if this host has other paths. Path is /logs-viewer/.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: logviewer-ingress
+  namespace: giva-d360
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /logs-viewer/$2
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+spec:
+  ingressClassName: giva-d360-ingress-nginx
+  tls:
+  - hosts: [REPLACE_WITH_YOUR_HOSTNAME]
+    secretName: gsk-wildcard-tls
+  rules:
+  - host: REPLACE_WITH_YOUR_HOSTNAME
+    http:
+      paths:
+      - path: /logs-viewer(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: logviewer-ui
+            port:
+              number: 80

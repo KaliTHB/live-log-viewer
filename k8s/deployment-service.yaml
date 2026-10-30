@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logviewer-ui
+  namespace: giva-d360
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logviewer-ui
+  template:
+    metadata:
+      labels:
+        app: logviewer-ui
+    spec:
+      serviceAccountName: logviewer-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: logviewer-ui
+        image: corpusacrdevtestindd360genai.azurecr.io/k8-log-viewer:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 5000
+        env:
+        - name: UI_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: logviewer-auth
+              key: UI_USERNAME
+        - name: UI_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: logviewer-auth
+              key: UI_PASSWORD
+        readinessProbe:
+          httpGet: {path: /healthz, port: http}
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet: {path: /healthz, port: http}
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        resources:
+          requests: {cpu: 100m, memory: 128Mi}
+          limits: {cpu: 500m, memory: 512Mi}
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities: {drop: ["ALL"]}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logviewer-ui
+  namespace: giva-d360
+spec:
+  type: ClusterIP
+  selector:
+    app: logviewer-ui
+  ports:
+  - name: http
+    port: 80
+    targetPort: 5000
